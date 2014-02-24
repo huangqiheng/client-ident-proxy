@@ -11,10 +11,10 @@ $log_domain = 'log.hqh.me';
 $log_host = '120.31.130.152';
 $log_port = '80';
 
-function jsondb_logger_init($facility, $ident, $db_name=null, $table_name=null, $apikey=null)
+function jsondb_logger_init($facility, $ident=null, $db_name=null, $table_name=null, $apikey=null)
 {
 	global $log_db_name, $log_table_name, $log_apikey, $log_ident, $log_facility;
-	$log_ident = $ident;
+	$ident && ($log_ident = $ident);
 	$log_facility = $facility;
 
 	$db_name && ($log_db_name = $db_name);

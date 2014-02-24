@@ -88,12 +88,15 @@ function forward($cb_before=null, $cb_after=null, $url='')
 
 		//如果内容有修改，则需要从新打包，和计算内容长度
 		if ($old_md5 !== $new_md5) {
-			if ($encoding === 'deflate') {
-				$body = gzdeflate($body_str );
-			}
-
-			if ($encoding === 'gzip') {
-				$body = gzencode($body_str );
+			switch ($encoding) {
+				case 'deflate': 
+					$body = gzdeflate($body_str );
+					break;
+				case 'gzip': 
+					$body = gzencode($body_str );
+					break;
+				default:
+					$body = $body_str;
 			}
 
 			//修正发出的内容长度

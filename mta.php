@@ -2,7 +2,7 @@
 require_once 'log.php';
 require_once 'proxy-pass.php';
 
-forward(function(&$url, &$data_to_post, &$headers)
+function before_upstream_callback(&$url, &$data_to_post, &$headers)
 {
 	$path = parse_url($url, PHP_URL_PATH);
 	$mta_content = mta_decode($headers, $data_to_post);
@@ -15,8 +15,9 @@ forward(function(&$url, &$data_to_post, &$headers)
 		'decode' => $mta_content,
 		'headers'=>$headers
 	]);
-}, 
-function($info, &$headers, &$body)
+} 
+
+function after_upstream_callback($info, &$headers, &$body)
 {
 	$url = $info['url'];
 	$path = parse_url($url, PHP_URL_PATH);
@@ -31,7 +32,9 @@ function($info, &$headers, &$body)
 		'bin2hex' => hex_view($body),
 		'decode' => $mta_content
 	]);
-});
+}
+
+forward('before_upstream_callback', 'after_upstream_callback');
 
 //=========================
 //=========================

@@ -1,0 +1,16 @@
+#!/bin/sh
+
+nginx=/opt/nginx/sbin/nginx
+
+current_path=`dirname $(readlink -f $0)`
+prefix=`dirname $(dirname $nginx)`
+
+if ps ax | grep -v grep | grep $nginx > /dev/null
+then
+	$nginx -p $prefix -c $current_path/nginx.conf -s reload
+	echo "nginx.conf is reloaded"
+else
+	$nginx -p $prefix -c $current_path/nginx.conf
+	echo "nginx is now running"
+fi
+

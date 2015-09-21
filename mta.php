@@ -2,10 +2,21 @@
 require_once 'log.php';
 require_once 'proxy-pass.php';
 
+function before_post_data($post)
+{
+	return $post;
+}
+
 function before_upstream_callback(&$url, &$data_to_post, &$headers)
 {
 	$path = parse_url($url, PHP_URL_PATH);
-	$mta_content = mta_decode($headers, $data_to_post);
+	$dec_obj = mta_decode($headers, $data_to_post, 'before_post_data');
+
+	if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
+		$data_to_post = $dec_obj['res'];
+	}
+
+	$mta_content = $dec_obj['ori'];
 	$title = 'send '.$path.' '.keyval_str($mta_content);
 
 	jsondb_logger('nofity', $title, [
@@ -13,18 +24,30 @@ function before_upstream_callback(&$url, &$data_to_post, &$headers)
 		'post'=>$data_to_post,
 		'bin2hex' => hex_view($data_to_post),
 		'decode' => $mta_content,
-		'headers'=>$headers
+		'headers'=>$headers,
+		'dec_obj' => $dec_obj
 	]);
 } 
 
 //id:  3101936025
 //key: ARJBX587JM7W
 
+function after_return_data($result)
+{
+	return $result;
+}
+
 function after_upstream_callback($info, &$headers, &$body)
 {
 	$url = $info['url'];
 	$path = parse_url($url, PHP_URL_PATH);
-	$mta_content = mta_decode($headers, $body);
+	$dec_obj = mta_decode($headers, $body, 'after_return_body');
+
+	if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
+		$body = $dec_obj['res'];
+	}
+
+	$mta_content = $dec_obj['ori'];
 	$title = 'recv '.$path.' '.keyval_str($mta_content);
 
 	jsondb_logger('nofity', $title, [
@@ -33,7 +56,8 @@ function after_upstream_callback($info, &$headers, &$body)
 		'headers'=>$headers,
 		'body'=>$body,
 		'bin2hex' => hex_view($body),
-		'decode' => $mta_content
+		'decode' => $mta_content,
+		'dec_obj' => $dec_obj
 	]);
 }
 
@@ -42,79 +66,73 @@ forward('before_upstream_callback', 'after_upstream_callback');
 //=========================
 //=========================
 
-function mta_encode($headers, $data)
-{
-	$encode_types = get_content_encoding($headers);;
-	$types = explode(',', $encode_types);
-	$types = array_reverse($types);
-
-	$res_data = json_encode($data);
-	foreach($types as $type) {
-		if ($type == 'rc4') {
-			$res_data = mta_rc4($res_data);
-		} else
-		if ($type == 'gzip') {
-			$header = unpack('Nlength/Lgzip', $res_data);
-			if (intval($header['gzip']) === 0x00088b1f) {
-				$header = unpack('Nlength/H*body', $res_data);
-				//$header['ori_buf'] = bin2hex($res_data);
-				//$header['ori_len'] = strlen($res_data);
-				$res_data = hex2bin($header['body']);
-			} else {
-
-			}
-
-			$res_data = gzencode($res_data);
-			//jsondb_logger('nofity', 'gzip log', ['res'=>$res_data,'len'=>strlen($res_data),'header'=>$header]);
-		}
-	}
-
-	if (empty($res_data)) {
-		jsondb_logger('notify', 'error '.$data);
-	}
-
-	return json_decode($res_data);
-}
-
-function mta_decode($headers, $data)
+function mta_decode($headers, $data, $cb_fliter=null)
 {
 	$encode_types = get_content_encoding($headers);;
 	$types = explode(',', $encode_types);
 
+	$packed = false;
 	$res_data = $data;
 	foreach($types as $type) {
 		if ($type == 'rc4') {
 			$res_data = mta_rc4($res_data);
-		} else
+			continue;
+		} 
+
 		if ($type == 'gzip') {
 			$header = unpack('Nlength/Lgzip', $res_data);
 			if (intval($header['gzip']) === 0x00088b1f) {
 				$header = unpack('Nlength/H*body', $res_data);
-				//$header['ori_buf'] = bin2hex($res_data);
-				//$header['ori_len'] = strlen($res_data);
 				$res_data = hex2bin($header['body']);
-			} else {
-
+				$packed = true;
 			}
 
 			$res_data = gzdecode($res_data);
-			//jsondb_logger('nofity', 'gzip log', ['res'=>$res_data,'len'=>strlen($res_data),'header'=>$header]);
 		}
 	}
 
 	if (empty($res_data)) {
 		jsondb_logger('notify', 'error '.bin2hex($data));
+		return array('status'=>'error', 'error'=>'decryption error');
 	}
 
-	return json_decode($res_data);
+	$ori_data = json_decode($res_data);
+
+	if ($cb_fliter) {
+		$new_data = call_user_func($cb_fliter, $ori_data);
+		if ($new_data) {
+			$types = array_reverse($types);
+
+			$res_data = $new_data;
+			foreach($types as $type) {
+				if ($type == 'rc4') {
+					$res_data = mta_rc4($res_data);
+					continue;
+				} 
+
+				if ($type == 'gzip') {
+					if ($packed) {
+						$length = strlen($res_data);
+						$res_data = gzencode($res_data);
+						$res_data = pack('Na*', $length, $res_data);
+					} else {
+						$res_data = gzencode($res_data);
+					}
+				}
+			}
+			return array('status'=>'ok', 'ori'=>$ori_data, 'new'=>$new_data, 'res'=>$res_data);
+		}
+	}
+
+	return array('status'=>'ok', 'ori'=>$ori_data, 'new'=>null, 'res'=>null);
 }
 
 function is_echoable($item)
 {
 	if(
-			( !is_array( $item ) ) &&
-			( ( !is_object( $item ) && settype( $item, 'string' ) !== false ) ||
-			  ( is_object( $item ) && method_exists( $item, '__toString' ) ) )
+		( !is_array( $item ) ) &&
+		( ( !is_object( $item ) && settype( $item, 'string' ) !== false ) ||
+		  ( is_object( $item ) && method_exists( $item, '__toString' ) ) )
 	  )
 	{
 		return true;

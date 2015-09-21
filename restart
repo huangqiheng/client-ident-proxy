@@ -1,7 +1,0 @@
-#!/bin/sh
-
-current_path=`dirname $(readlink -f $0)`
-prefix=/opt/nginx
-nginx=/opt/nginx/sbin/nginx
-
-$nginx -p $prefix/ -c $current_path/nginx.conf

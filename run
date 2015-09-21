@@ -4,13 +4,39 @@ nginx=/opt/nginx/sbin/nginx
 
 current_path=`dirname $(readlink -f $0)`
 prefix=`dirname $(dirname $nginx)`
+access_log=$prefix/logs/access.log
+error_log=$prefix/logs/error.log
 
-if ps ax | grep -v grep | grep $nginx > /dev/null
-then
-	$nginx -p $prefix -c $current_path/nginx.conf -s reload
-	echo "nginx.conf is reloaded"
-else
-	$nginx -p $prefix -c $current_path/nginx.conf
-	echo "nginx is now running"
+if [ "-$1" = "-" ]; then
+	if ps ax | grep -v grep | grep $nginx > /dev/null
+	then
+		$nginx -p $prefix -c $current_path/nginx.conf -s reload
+		echo "nginx.conf is reloaded"
+	else
+		$nginx -p $prefix -c $current_path/nginx.conf
+		echo "nginx is now running"
+	fi
+	exit
+fi 
+
+if [ "$1" = "access" ]; then
+	tail -f $access_log
+	exit
 fi
 
+if [ "$1" = "error" ]; then
+	tail -f $error_log
+	exit
+fi
+
+if [ "$1" = "php5-fpm" ]; then
+	apt-get update
+	apt-get install php5-cgi php5-fpm php5-curl php5-mcrypt
+	apt-get install php5-memcache php5-memcached
+	exit
+fi
+
+echo "Usage: "
+echo "	run		: start nginx or reload nginx.conf."
+echo "	run access	: follow and view nginx access.log."
+echo "	run error	: follow and view nginx error.log."

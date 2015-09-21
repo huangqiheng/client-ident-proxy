@@ -17,6 +17,9 @@ function before_upstream_callback(&$url, &$data_to_post, &$headers)
 	]);
 } 
 
+//id:  3101936025
+//key: ARJBX587JM7W
+
 function after_upstream_callback($info, &$headers, &$body)
 {
 	$url = $info['url'];
@@ -38,6 +41,40 @@ forward('before_upstream_callback', 'after_upstream_callback');
 
 //=========================
 //=========================
+
+function mta_encode($headers, $data)
+{
+	$encode_types = get_content_encoding($headers);;
+	$types = explode(',', $encode_types);
+	$types = array_reverse($types);
+
+	$res_data = json_encode($data);
+	foreach($types as $type) {
+		if ($type == 'rc4') {
+			$res_data = mta_rc4($res_data);
+		} else
+		if ($type == 'gzip') {
+			$header = unpack('Nlength/Lgzip', $res_data);
+			if (intval($header['gzip']) === 0x00088b1f) {
+				$header = unpack('Nlength/H*body', $res_data);
+				//$header['ori_buf'] = bin2hex($res_data);
+				//$header['ori_len'] = strlen($res_data);
+				$res_data = hex2bin($header['body']);
+			} else {
+
+			}
+
+			$res_data = gzencode($res_data);
+			//jsondb_logger('nofity', 'gzip log', ['res'=>$res_data,'len'=>strlen($res_data),'header'=>$header]);
+		}
+	}
+
+	if (empty($res_data)) {
+		jsondb_logger('notify', 'error '.$data);
+	}
+
+	return json_decode($res_data);
+}
 
 function mta_decode($headers, $data)
 {

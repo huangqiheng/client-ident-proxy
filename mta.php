@@ -41,7 +41,7 @@ function after_upstream_callback($info, &$headers, &$body)
 {
 	$url = $info['url'];
 	$path = parse_url($url, PHP_URL_PATH);
-	$dec_obj = mta_decode($headers, $body, 'after_return_body');
+	$dec_obj = mta_decode($headers, $body, 'after_return_data');
 
 	if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
 		$body = $dec_obj['res'];
@@ -71,20 +71,20 @@ function mta_decode($headers, $data, $cb_fliter=null)
 	$encode_types = get_content_encoding($headers);;
 	$types = explode(',', $encode_types);
 
+	//jsondb_logger('notify', 'before: '.bin2hex($data));
+
 	$packed = false;
 	$res_data = $data;
 	foreach($types as $type) {
 		if ($type == 'rc4') {
 			$res_data = mta_rc4($res_data);
-			continue;
-		} 
-
-		if ($type == 'gzip') {
+		} elseif ($type == 'gzip') {
 			$header = unpack('Nlength/Lgzip', $res_data);
 			if (intval($header['gzip']) === 0x00088b1f) {
-				$header = unpack('Nlength/H*body', $res_data);
-				$res_data = hex2bin($header['body']);
+				$header = unpack('Nlength/a*body', $res_data);
+				$res_data = $header['body'];
 				$packed = true;
+				//jsondb_logger('notify', 'len1: '.$header['length'], $header);
 			}
 
 			$res_data = gzdecode($res_data);
@@ -103,23 +103,25 @@ function mta_decode($headers, $data, $cb_fliter=null)
 		if ($new_data) {
 			$types = array_reverse($types);
 
-			$res_data = $new_data;
+			$res_data = json_encode($new_data);
 			foreach($types as $type) {
 				if ($type == 'rc4') {
 					$res_data = mta_rc4($res_data);
-					continue;
-				} 
-
-				if ($type == 'gzip') {
+					//jsondb_logger('notify', 'after rc4: '.bin2hex($res_data));
+				} elseif ($type == 'gzip') {
 					if ($packed) {
 						$length = strlen($res_data);
 						$res_data = gzencode($res_data);
 						$res_data = pack('Na*', $length, $res_data);
+
+						//jsondb_logger('notify', 'len2: '.$length);
 					} else {
 						$res_data = gzencode($res_data);
 					}
+					//jsondb_logger('notify', 'after zip: '.bin2hex($res_data));
 				}
 			}
+
 			return array('status'=>'ok', 'ori'=>$ori_data, 'new'=>$new_data, 'res'=>$res_data);
 		}
 	}

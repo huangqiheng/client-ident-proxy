@@ -36,6 +36,14 @@ if [ "$1" = "php5-fpm" ]; then
 	exit
 fi
 
+
+if [ "$1" = "push" ]; then
+	git add --all
+	git commit -m "$2"
+	git push
+	exit
+fi
+
 echo "Usage: "
 echo "	run		: start nginx or reload nginx.conf."
 echo "	run access	: follow and view nginx access.log."

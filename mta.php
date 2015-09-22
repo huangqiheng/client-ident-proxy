@@ -2,63 +2,55 @@
 require_once 'log.php';
 require_once 'proxy-pass.php';
 
-function before_post_data($post)
+function before_post_data($headers, $post)
 {
-	return $post;
+	foreach($post as $item) {
+		$item->ky = 'ARJBX587JM7W';
+	}
+
+        $uri = $_SERVER['REQUEST_URI'];
+        $title = '┗send '.$uri.' ┅ '.keyval_str($post);
+
+        jsondb_logger('nofity', $title, [
+                'url'=>$uri,
+                'headers'=>$headers,
+                'post'=>$post
+        ]);
+
+        return $post;
+}
+//id:  3101936025
+//key: ARJBX587JM7W
+
+function after_return_data($headers, $result)
+{
+        $uri = $_SERVER['REQUEST_URI'];
+        $title = '┏recv '.$uri.' ┅ '.keyval_str($result);
+
+        jsondb_logger('nofity', $title, [
+                'url'=>$uri,
+                'headers'=>$headers,
+                'result'=>$result
+        ]);
+        return $result;
 }
 
 function before_upstream_callback(&$url, &$data_to_post, &$headers)
 {
-	$path = parse_url($url, PHP_URL_PATH);
-	$dec_obj = mta_decode($headers, $data_to_post, 'before_post_data');
+        $dec_obj = mta_decode($headers, $data_to_post, 'before_post_data');
 
-	if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
-		$data_to_post = $dec_obj['res'];
-	}
-
-	$mta_content = $dec_obj['ori'];
-	$title = 'send '.$path.' '.keyval_str($mta_content);
-
-	jsondb_logger('nofity', $title, [
-		'url'=>$url,
-		'post'=>$data_to_post,
-		'bin2hex' => hex_view($data_to_post),
-		'decode' => $mta_content,
-		'headers'=>$headers,
-		'dec_obj' => $dec_obj
-	]);
-} 
-
-//id:  3101936025
-//key: ARJBX587JM7W
-
-function after_return_data($result)
-{
-	return $result;
+        if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
+                $data_to_post = $dec_obj['res'];
+        }
 }
 
 function after_upstream_callback($info, &$headers, &$body)
 {
-	$url = $info['url'];
-	$path = parse_url($url, PHP_URL_PATH);
-	$dec_obj = mta_decode($headers, $body, 'after_return_data');
+        $dec_obj = mta_decode($headers, $body, 'after_return_data');
 
-	if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
-		$body = $dec_obj['res'];
-	}
-
-	$mta_content = $dec_obj['ori'];
-	$title = 'recv '.$path.' '.keyval_str($mta_content);
-
-	jsondb_logger('nofity', $title, [
-		'url'=> $url,
-		'info'=>$info,
-		'headers'=>$headers,
-		'body'=>$body,
-		'bin2hex' => hex_view($body),
-		'decode' => $mta_content,
-		'dec_obj' => $dec_obj
-	]);
+        if (($dec_obj['status'] == 'ok') and ($dec_obj['res'])) {
+                $body = $dec_obj['res'];
+        }
 }
 
 forward('before_upstream_callback', 'after_upstream_callback');
@@ -68,6 +60,10 @@ forward('before_upstream_callback', 'after_upstream_callback');
 
 function mta_decode($headers, $data, $cb_fliter=null)
 {
+        if (empty($data)) {
+                return array('status'=>'error', 'error'=>'no data posted');
+        }
+
 	$encode_types = get_content_encoding($headers);;
 	$types = explode(',', $encode_types);
 
@@ -99,7 +95,7 @@ function mta_decode($headers, $data, $cb_fliter=null)
 	$ori_data = json_decode($res_data);
 
 	if ($cb_fliter) {
-		$new_data = call_user_func($cb_fliter, $ori_data);
+		$new_data = call_user_func($cb_fliter, $headers, $ori_data);
 		if ($new_data) {
 			$types = array_reverse($types);
 
@@ -144,15 +140,21 @@ function is_echoable($item)
 
 function keyval_str($data)
 {
-	$res = '';
+	$accept_keys = array('ui','os','ky','id','abi','mf','sr','pcn','ram','ch','et','ei','pi');
 
+	$res = '';
 	if (is_array($data)) {
 		foreach($data as $item) {
 			foreach($item as $key=>$val) {
 				if (is_echoable($val)) {
-					$res .= $key.'='.$val.'; ';
+					$appends = $key.'='.$val.'; ';
 				} else {
-					$res .= $key.'='.json_encode($val).'; ';
+					$appends = $key.'='.json_encode($val).'; ';
+				}
+
+				if (in_array($key, $accept_keys)){
+					$res .= $appends;
+					$accept_keys = array_diff($accept_keys, array($key));
 				}
 			}
 		}

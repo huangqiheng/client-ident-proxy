@@ -36,8 +36,12 @@ if [ "$1" = "php5-fpm" ]; then
 	exit
 fi
 
-
 if [ "$1" = "push" ]; then
+	if [ "-$2" = "-" ]; then
+		echo "Please input commit message after 'push'."
+		exit
+	fi
+
 	git add --all
 	git commit -m "$2"
 	git push
@@ -48,3 +52,4 @@ echo "Usage: "
 echo "	run		: start nginx or reload nginx.conf."
 echo "	run access	: follow and view nginx access.log."
 echo "	run error	: follow and view nginx error.log."
+echo "	run push 'msg'	: push code to github."

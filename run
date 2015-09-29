@@ -29,6 +29,12 @@ if [ "$1" = "error" ]; then
 	exit
 fi
 
+if [ "$1" = "clean" ]; then
+	truncate --size 0 $access_log
+	truncate --size 0 $error_log
+	exit
+fi
+
 if [ "$1" = "php5-fpm" ]; then
 	apt-get update
 	apt-get install php5-cgi php5-fpm php5-curl php5-mcrypt
@@ -52,4 +58,5 @@ echo "Usage: "
 echo "	run		: start nginx or reload nginx.conf."
 echo "	run access	: follow and view nginx access.log."
 echo "	run error	: follow and view nginx error.log."
+echo "	run clean	: clean nginx access.log and error.log."
 echo "	run push 'msg'	: push code to github."

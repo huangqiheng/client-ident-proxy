@@ -7,24 +7,22 @@ mid	MID, MTA identify
 mc	MAC adress
 aid	android id
 
-ei	event id
-et	event type
-ut	user type
-ts	timestamps
-dts	diff time
-ch	channel
-os	operating system type
-
 sm	SleepTime minutes
 sv	SDK version
 md	Model of device
 av	App version
 mf	Manufacture
 osv,ov	android sdk version
+ts	timestamps
+dts	diff time
 ver	version
+ch	channel
+os	operating system type
+ut	user type
 ncts	need check times
 cfg	configure json object
 ia	is the first time activate
+et	event type
 
 lg	language
 ram	ram capacity
@@ -43,7 +41,7 @@ wflist	wifi state list:
 
 
 //根据个性化配置，获得MTA上下文对象
-function initMTAConfig($appKey, $ui, $uid, $mac)
+function initMTAConfig($app_key, $ui, $uid, $mac)
 {
 
 }

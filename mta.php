@@ -75,12 +75,11 @@ function mta_decode($headers, $data, $cb_fliter=null)
 		if ($type == 'rc4') {
 			$res_data = mta_rc4($res_data);
 		} elseif ($type == 'gzip') {
-			$header = unpack('Nlength/Lgzip', $res_data);
-			if (intval($header['gzip']) === 0x00088b1f) {
+			$header = unpack('Nlength/Sgzip', $res_data);
+			if (intval($header['gzip']) === 0x8b1f) {
 				$header = unpack('Nlength/a*body', $res_data);
 				$res_data = $header['body'];
 				$packed = true;
-				//jsondb_logger('notify', 'len1: '.$header['length'], $header);
 			}
 
 			$res_data = gzdecode($res_data);

@@ -19,8 +19,6 @@ function before_post_data($headers, $post)
 
         return $post;
 }
-//id:  3101936025
-//key: ARJBX587JM7W
 
 function after_return_data($headers, $result)
 {

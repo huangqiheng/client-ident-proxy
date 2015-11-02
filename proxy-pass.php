@@ -2,36 +2,46 @@
 
 define('REQUEST_TIMEOUT', 5);
 
-function forward($cb_before=null, $cb_after=null, $url='')
+function forward($cb_before=null, $cb_after=null, $url=null, $headers=null, $input_post=null)
 {
 	//生成url
-	if ($url === '') {
+	if (empty($url)) {
 		$url = "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 	} else {
-		if (!preg_match("/https?:/i", $url)) {
-			if (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {
-			    $url = "https://" . $_SERVER['HTTP_HOST'] . "/" . ltrim($url, "/");
-			} else {
-			    $url = "http://" . $_SERVER['HTTP_HOST'] . "/" . ltrim($url, "/");
+		if (isset($headers) && (isset($headers['Host']))) {
+
+		} else {
+			if (!preg_match("/https?:/i", $url)) {
+				if (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {
+				    $url = "https://" . $_SERVER['HTTP_HOST'] . "/" . ltrim($url, "/");
+				} else {
+				    $url = "http://" . $_SERVER['HTTP_HOST'] . "/" . ltrim($url, "/");
+				}
 			}
 		}
 	}
 
 	//获取转发需要的头内容
-        $headers = get_request_headers();
+	if (empty($headers)) {
+		$headers = get_request_headers();
+	}
 
 	//转发POST内容
 	$data_to_post = null;
-	if ($_SERVER["REQUEST_METHOD"] == "POST") {
-		if(in_array(get_content_type($headers), array('application/x-www-form-urlencoded','multipart/form-data'))) {
-			$data_to_post = $_POST;
-		} else {
-			//就抓出原始的post数据即可
-			$fp = fopen('php://input','r');
-			$post = stream_get_contents($fp);
-			fclose($fp);
-			$data_to_post = $post;
+	if (empty($input_post)) {
+		if ($_SERVER["REQUEST_METHOD"] == "POST") {
+			if(in_array(get_content_type($headers), array('application/x-www-form-urlencoded','multipart/form-data'))) {
+				$data_to_post = $_POST;
+			} else {
+				//就抓出原始的post数据即可
+				$fp = fopen('php://input','r');
+				$post = stream_get_contents($fp);
+				fclose($fp);
+				$data_to_post = $post;
+			}
 		}
+	} else {
+		$data_to_post = $input_post;
 	}
 
 	if ($cb_before) {

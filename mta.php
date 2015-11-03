@@ -137,7 +137,7 @@ function is_echoable($item)
 
 function keyval_str($data)
 {
-	$accept_keys = array('ui','os','ky','id','abi','mf','sr','pcn','ram','ch','et','ei','pi');
+	$accept_keys = array('idx','si','ts','ui','ky','mf','apn','pcn','ch','et','ei','pi');
 
 	$res = '';
 	if (is_array($data)) {

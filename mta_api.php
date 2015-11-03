@@ -1,51 +1,12 @@
 <?php 
 require_once 'log.php';
 
-/*
-ky	app key
-ui	Unique Identifier, IMEI, mobile serial number
-uid	user id, get from getDeviceID
-mid	MID, MTA identify
-mc	MAC adress
-aid	android id
-
-ei	event id
-et	event type
-ut	user type
-ts	timestamps
-dts	diff time
-ch	channel
-os	operating system type
-
-sm	SleepTime minutes
-sv	SDK version
-md	Model of device
-av	App version
-mf	Manufacture
-osv,ov	android sdk version
-ver	version
-ncts	need check times
-cfg	configure json object
-ia	is the first time activate
-
-lg	language
-ram	ram capacity
-rom	rom capacity
-sd	sd card capacity
-tz	timezone
-prod	product name
-dpi	dot per inch, screen resolution 
-sr	screen resolution 
-wf	wifi name now using
-wflist	wifi state list: 
-	bs:	like mac address
-	dBm:	sinal strength
-	ss: 	wifi ssid
-*/
-
-
+define('RC4_KEY', '03a976511e2cbe3a7f26808fb7af3c05');
+define('FB_KEY', 'nDkb9nMIizcj2RDehplOjn+Q');
 define('REQUEST_TIMEOUT', 5);
 define('SESSION_INTERNAL', 30);  //设置session间隔是30秒
+define('PROCESS_RESTART_MIN', 8); //设置进程从启时机的计数，至少是
+define('PROCESS_RESTART_MAX', 20); //设置进程从启时机的计数，最长是
 
 $sample = array(
 	'ui' =>  '357656050908647',
@@ -188,6 +149,7 @@ function send_mta($data, $encode='rc4')
 	$session = get_session();
 	$data['ts'] = time();
 	$data['idx'] = $session['idx'];
+	$data['si'] = $session['si'];
 
 	echo json_encode($data,true) . "\r\n";
 
@@ -306,32 +268,93 @@ function enum_get_header($headers, $callback)
 
 }
 
+function update_idx(&$data)
+{
+	if (isset($data['idx'])) {
+		$idx = intval($data['idx']);
+	} else {
+		$idx = -1;
+	}
+
+	if ($idx > 0) {
+		if ($idx % 1000 == 0) {
+			$new_idx = $idx + 1000;
+			if ($idx >= 2147383647) {
+				$new_idx = 0;
+			}
+			$idx = $new_idx;
+		}
+	} else {
+		$idx += 1000;
+	}
+
+	$idx++;
+	$data['idx'] = $idx;
+	return $idx;
+}
+
+function update_index($ts, &$data)
+{
+	$app_restart = false;
+
+	if (isset($data['index'])) {
+		$index = intval($data['index']);
+		$counter = $data['index_restart_counter'];
+		if ($counter > 0) {
+			$index++;
+			$data['index_restart_counter']--;
+		} else {
+			$index = $ts;
+			$app_restart = true;
+		}
+	} else {
+		$index = $ts;
+		$app_restart = true;
+	}
+
+	$data['index'] = $index;
+
+	if ($app_restart) {
+		$data['index_restart_counter'] = mt_rand(PROCESS_RESTART_MIN, PROCESS_RESTART_MAX);
+	}
+
+	return $index;
+}
+
+function update_si($ts, &$data)
+{
+	if (isset($data['si'])) {
+		$si = intval($data['si']);
+		$last_active = intval($data['last_active']);
+		if (($ts - $last_active) > SESSION_INTERNAL) {
+			$si = mt_rand();
+		}
+	} else {
+		$si = mt_rand();
+	}
+
+	$data['si'] = $si;
+	$data['last_active'] = $ts;
+
+	return $si;
+}
+
 function get_session()
 {
 	$ts = time();
 	$data = file_get_contents('mta.session');
 	$data = json_decode($data, true);
 
-	do {
-		if (empty($data)) {break;}
-		if (!isset($data['index'])) {break;}
-		if (($ts - intval($data['last_active'])) > SESSION_INTERNAL) {break;}
-
-		$data['index']++;
-		$data['idx']++;
-		$data['last_active'] = $ts;
-		file_put_contents('mta.session', json_encode($data));
-		return $data;
-	} while(false);
-
-	if (isset($data['idx'])) {
-		$idx = $data['idx'];
-		$new_data = array('index'=>$ts, 'idx'=>++$idx, 'session_start'=>$ts, 'last_active'=>$ts);
-	} else {
-		$new_data = array('index'=>$ts, 'idx'=>20000, 'session_start'=>$ts, 'last_active'=>$ts);
+	if (empty($data)) {
+		$data = array();
 	}
-	file_put_contents('mta.session', json_encode($new_data));
-	return $new_data;
+
+	update_si($ts, $data);
+	update_index($ts, $data);
+	update_idx($data);
+
+	file_put_contents('mta.session', json_encode($data));
+	return $data;
 }
 
 
@@ -434,9 +457,15 @@ function hex_view($input)
 	return chunk_split($input,2,' ');
 }
 
+function feedback_key()
+{
+	$str = base64_decode(FB_KEY);
+	return mta_rc4($str);
+}
+
 function mta_rc4($data)
 {
-	return rc4('03a976511e2cbe3a7f26808fb7af3c05', $data);
+	return rc4(RC4_KEY, $data);
 }
 
 
@@ -533,3 +562,62 @@ function trackCustomEndEvent($content, $event_id, $args)
 {
 
 }
+
+/*
+ky	app key
+ui	Unique Identifier, IMEI, mobile serial number
+cui 	current user id
+uid	user id, get from getDeviceID
+mid	MID, MTA identify
+mc	MAC adress
+aid	android id
+
+si	session identifier, change when session timeout
+index	url querystring, break for app restart
+
+ei	event id
+et	event type
+ut	user type
+ts	timestamps
+dts	diff time
+ch	channel
+os	operating system type
+
+sm	SleepTime minutes
+sv	SDK version
+md	Model of device
+av	current App version
+mf	Manufacture
+osv,ov	android sdk version
+ver	version
+ncts	need check times
+cfg	configure json object
+ia	is the first time activate
+
+jb	is jail break
+apn	app package name
+pcn	current process name
+sen	all sensor
+op 	sim card operator
+lg	language
+ram	system memory, ram capacity
+rom	rom memory, rom capacity
+asg	current app sha1 signature
+im	device IMSI
+sd	sd card capacity, external storage info
+tz	timezone
+osd	build display
+prod	build product name
+tags	build tags
+id	build id
+fng	build finger print
+lch	launcher package name, like com.sonyericsson.home 
+dpi	dot per inch, screen resolution 
+sr	screen resolution 
+wf	wifi name now using
+wflist	wifi state list: 
+	bs:	like mac address
+	dBm:	sinal strength
+	ss: 	wifi ssid
+*/
+

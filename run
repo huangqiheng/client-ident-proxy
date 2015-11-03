@@ -1,11 +1,51 @@
 #!/bin/sh
 
+current_path=`dirname $(readlink -f $0)`
 nginx=/opt/nginx/sbin/nginx
 
-current_path=`dirname $(readlink -f $0)`
+if [ ! -f $nginx ]; then
+	echo "=================== INSTALLATION START ====================="
+	echo "Custom nginx is not installed yet! Now install..."
+	apt-get update
+	apt-get install -y build-essential
+	apt-get install -y libpcre3-dev libssl-dev
+	apt-get install -y git
+	adduser --system --no-create-home --disabled-login --disabled-password --group nginx
+
+	cd $current_path
+	mkdir temp
+	cd temp
+
+	git clone https://github.com/huangqiheng/nginx-gunzip.git
+	wget http://nginx.org/download/nginx-1.4.2.tar.gz
+	tar xvzf nginx-1.4.2.tar.gz && cd nginx-1.4.2
+	./configure \
+		--prefix=/opt/nginx \
+		--user=nginx \
+		--group=nginx \
+		--with-http_ssl_module \
+		--without-http_scgi_module \
+		--without-http_uwsgi_module \
+		--with-http_sub_module \
+		--add-module=../nginx-gunzip
+
+	make && make install
+
+	cd $current_path
+	rm -rf ./temp
+
+	echo "Now install php environment..."
+	apt-get install -y php5-cli php5-cgi php5-fpm php5-curl php5-mcrypt
+	apt-get install -y php5-memcache php5-memcached
+
+	echo "=================== INSTALLATION FINISH ====================="
+fi
+
 prefix=`dirname $(dirname $nginx)`
 access_log=$prefix/logs/access.log
 error_log=$prefix/logs/error.log
+
+chown www-data:www-data mta.session
 
 if [ "-$1" = "-" ]; then
 	if ps ax | grep -v grep | grep $nginx > /dev/null
@@ -29,18 +69,22 @@ if [ "$1" = "error" ]; then
 	exit
 fi
 
+if [ "$1" = "quit" ]; then
+	if [ -f $prefix/logs/nginx.pid ]; then
+		$nginx -s quit
+		echo "nginx quit"
+	else
+		echo "nginx is not running."
+	fi
+	exit
+fi
+
 if [ "$1" = "clean" ]; then
 	truncate --size 0 $access_log
 	truncate --size 0 $error_log
 	exit
 fi
 
-if [ "$1" = "php5-fpm" ]; then
-	apt-get update
-	apt-get install php5-cgi php5-fpm php5-curl php5-mcrypt
-	apt-get install php5-memcache php5-memcached
-	exit
-fi
 
 if [ "$1" = "push" ]; then
 	if [ "-$2" = "-" ]; then
@@ -56,6 +100,7 @@ fi
 
 echo "Usage: "
 echo "	run		: start nginx or reload nginx.conf."
+echo "	run quit	: send signal to quit nginx."
 echo "	run access	: follow and view nginx access.log."
 echo "	run error	: follow and view nginx error.log."
 echo "	run clean	: clean nginx access.log and error.log."

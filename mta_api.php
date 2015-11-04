@@ -2,11 +2,15 @@
 require_once 'log.php';
 
 define('RC4_KEY', '03a976511e2cbe3a7f26808fb7af3c05');
+define('HMAC_KEY', 'iikVs3FGzEQ23RaD1JlHsSWSI5Z26m2hX3gO51mH3ag=');
 define('FB_KEY', 'nDkb9nMIizcj2RDehplOjn+Q');
 define('REQUEST_TIMEOUT', 5);
 define('SESSION_INTERNAL', 30);  //设置session间隔是30秒
-define('PROCESS_RESTART_MIN', 8); //设置进程从启时机的计数，至少是
-define('PROCESS_RESTART_MAX', 20); //设置进程从启时机的计数，最长是
+define('PROCESS_INTERNAL_MIN', 8); //模拟自动重启app
+define('PROCESS_INTERNAL_MAX', 20); //在min和max之间的随机数为计数器，倒数为0时模拟重启index序号
+
+output(imei_random());
+output(hmac_key('768055686'), true);
 
 $sample = array(
 	'ui' =>  '357656050908647',
@@ -130,19 +134,14 @@ $sample4 = array(
 
 
 //$sample['ky'] = 'A54F7VWNHT4R';
-//$sample2['ky'] = 'A54F7VWNHT4R';
-$sample['ky'] = 'ARJBX587JM7W';
-$sample2['ky'] = 'ARJBX587JM7W';
-$sample3['ky'] = 'A54F7VWNHT4R';
+//$sample['ky'] = 'ARJBX587JM7W';
+//$sample['ky'] = 'A52PU69EEQKA';
 
-$sample4['ky'] = 'ARJBX587JM7W';
-$sample4['ut'] = 1;
+$sample4['ky'] = 'A52PU69EEQKA';
+$sample4['mid'] = "fb4d04d2f59585e34e138b2e77d8afc686e2722d";
 $res = send_mta($sample4);
-echo json_encode($res, true) . "\r\n";
-/*
-$res = send_mta($sample4);
-echo json_encode($res, true) . "\r\n";
-*/
+
+output($res, true);
 
 function send_mta($data, $encode='rc4')
 {
@@ -151,7 +150,12 @@ function send_mta($data, $encode='rc4')
 	$data['idx'] = $session['idx'];
 	$data['si'] = $session['si'];
 
-	echo json_encode($data,true) . "\r\n";
+	//生成url
+	$url = 'http://pingma.qq.com:80/mstat/report/?index=' . $session['index'];
+
+	output($url);
+	output($data);
+	output($session);
 
 	//加密数据
 	$en_data = mta_encode($data, $encode);
@@ -162,9 +166,6 @@ function send_mta($data, $encode='rc4')
 		'Connection' => 'Keep-Alive',
 		'Content-Encoding' => $encode
 	);
-
-	//生成url
-	$url = 'http://pingma.qq.com:80/mstat/report/?index=' . $session['index'];
 
 	//初始化curl选项
         $ch = curl_init();
@@ -203,13 +204,21 @@ function send_mta($data, $encode='rc4')
         $headers = get_response_headers($headers_str);
 	$encoding = get_content_encoding($headers);
 
-	echo json_encode($info,true) . "\r\n";
-        
+	//output($info);
         
 	//输出html内容到浏览器
 	$ori_res = mta_decode($body, $encoding);
 	return $ori_res;
 }
+
+function output($obj, $is_exit=false) 
+{
+	echo print_r($obj, true) . "\r\n"; 
+	if ($is_exit) {
+		exit;
+	}
+}
+
 
 function get_response_headers($response)
 {
@@ -273,7 +282,7 @@ function update_idx(&$data)
 	if (isset($data['idx'])) {
 		$idx = intval($data['idx']);
 	} else {
-		$idx = -1;
+		$idx = 0;
 	}
 
 	if ($idx > 0) {
@@ -315,7 +324,7 @@ function update_index($ts, &$data)
 	$data['index'] = $index;
 
 	if ($app_restart) {
-		$data['index_restart_counter'] = mt_rand(PROCESS_RESTART_MIN, PROCESS_RESTART_MAX);
+		$data['index_restart_counter'] = mt_rand(PROCESS_INTERNAL_MIN, PROCESS_INTERNAL_MAX);
 	}
 
 	return $index;
@@ -457,10 +466,63 @@ function hex_view($input)
 	return chunk_split($input,2,' ');
 }
 
+function imei_random() 
+{
+	$code = intRandom(14);
+	$position = 0;
+	$total = 0;
+	while ($position < 14) {
+		if ($position % 2 == 0) {
+			$prod = 1;
+		} else {
+			$prod = 2;
+		}
+		$actualNum = $prod * $code[$position];
+		if ($actualNum > 9) {
+			$strNum = strval($actualNum);
+			$total += $strNum[0] + $strNum[1];
+		} else {
+			$total += $actualNum;
+		}
+		$position++;
+	}
+	$last = 10 - ($total % 10);
+	if ($last == 10) {
+		$imei = $code . 0;
+	} else {
+		$imei = $code . $last;
+	}
+	return $imei;
+}
+
+function intRandom($size) 
+{
+	$validCharacters = utf8_decode("0123456789");
+	$validCharNumber = strlen($validCharacters);
+	$int = '';
+	while (strlen($int) < $size) {
+		$index = mt_rand(0, $validCharNumber - 1);
+		$int .= $validCharacters[$index];
+	}
+	return $int;
+}
+
+function hmac_key($res_rand)
+{
+	$hmac_secret = decode_key(HMAC_KEY);
+	$res = hash_hmac('sha1', $res_rand, $hmac_secret);
+	return strtoupper($res);
+}
+
+
 function feedback_key()
 {
-	$str = base64_decode(FB_KEY);
-	return mta_rc4($str);
+	return decode_key(FB_KEY);
+}
+
+function decode_key($key)
+{
+	return mta_rc4(base64_decode($key));
 }
 
 function mta_rc4($data)

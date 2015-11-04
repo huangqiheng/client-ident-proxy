@@ -138,6 +138,10 @@ function is_echoable($item)
 
 function keyval_str($data)
 {
+	if (empty($data)) {
+		return '';
+	}
+
 	$accept_keys = array('idx','si','ts','ui','ky','mf','apn','pcn','ch','et','ei','pi');
 
 	$res = '';

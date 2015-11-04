@@ -1,13 +1,14 @@
 <?php 
 require_once 'log.php';
 
+define('APP_KEY', 'ARJBX587JM7W');
+define('APP_PAGEAGE_NAME', 'com.doctor.dtservice');
 define('RC4_KEY', '03a976511e2cbe3a7f26808fb7af3c05');
 define('HMAC_KEY', 'iikVs3FGzEQ23RaD1JlHsSWSI5Z26m2hX3gO51mH3ag=');
 define('FB_KEY', 'nDkb9nMIizcj2RDehplOjn+Q');
-define('REQUEST_TIMEOUT', 5);
-define('SESSION_INTERNAL', 30);  //设置session间隔是30秒
-define('PROCESS_INTERNAL_MIN', 8); //模拟自动重启app
-define('PROCESS_INTERNAL_MAX', 20); //在min和max之间的随机数为计数器，倒数为0时模拟重启index序号
+define('SESSION_INTERNAL', 30);  //set session internal, spec 30s
+define('PROCESS_INTERNAL_MIN', 8); //simunate app restart by user, this is min lower limit
+define('PROCESS_INTERNAL_MAX', 20); //max lower limit that would be generated
 
 output(imei_random());
 output(hmac_key('768055686'), true);
@@ -176,7 +177,7 @@ function send_mta($data, $encode='rc4')
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_HEADER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, REQUEST_TIMEOUT);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
 	curl_setopt($ch, CURLINFO_HEADER_OUT, true);
         
 	//将生成的头，设置在curl中
@@ -466,6 +467,35 @@ function hex_view($input)
 	return chunk_split($input,2,' ');
 }
 
+function requst_mid_data()
+{
+	$data = array();
+	//$data['ts'] = time();
+	//$data['ky'] = );
+	//$data['si'] = );
+	$data['mid'] = '0';
+	$data['rip'] = gethostbyname('pingmid.qq.com');
+	$data['ui'] = imei_random();
+	$data['mc'] = mac_random();
+	$data['et'] = '2';
+
+
+}
+
+function mac_random()
+{
+	$vals = array('0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F');
+	if (count($vals) >= 1) {
+		$mac = array("00"); // set first two digits manually
+		while (count($mac) < 6) {
+			shuffle($vals);
+			$mac[] = $vals[0] . $vals[1];
+		}
+		$mac = implode(":", $mac);
+	}
+	return $mac;
+}
+
 function imei_random() 
 {
 	$code = intRandom(14);
@@ -659,6 +689,8 @@ ia	is the first time activate
 jb	is jail break
 apn	app package name
 pcn	current process name
+cn	current network name
+tn	telephony network type
 sen	all sensor
 op 	sim card operator
 lg	language

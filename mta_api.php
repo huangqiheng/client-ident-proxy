@@ -10,111 +10,100 @@ define('SESSION_INTERNAL', 30);  //set session internal, spec 30s
 define('PROCESS_INTERNAL_MIN', 8); //simunate app restart by user, this is min lower limit
 define('PROCESS_INTERNAL_MAX', 20); //max lower limit that would be generated
 
-output(imei_random());
-output(hmac_key('768055686'), true);
+function first_active()
+{
+	$post_data = array(
+		"ui": "362997465382506",
+		"ky": "ARJBX587JM7W",
+		"idx": "1",
+		"ts": "1446705480",
+		"ut": "0",
+		"dts": "0",
+		"si": "1645620817",
+		"ncts": "1",
+		"ia": "1",
+		"mc": "db:74:03:20:75:38",
+		"mid": "0",
+		"et": "2",
+		"ev": {
+			"tn": "0",
+			"abi": "x86",
+			"id": "tt",
+			"lch": "com.android.launcher3",
+			"md": "TianTian",
+			"fng": "TTAndroid/ttVM_Hdragon/ttVM_Hdragon:4.3/tt/eng.root.20151019.135622:userdebug/test-keys",
+			"sv": "2.0.2",
+			"mf": "TiantianVM",
+			"dpi": "320.0*320.0",
+			"abi2": "armeabi-v7a",
+			"apn": "com.tencent.mtademo",
+			"prod": "ttVM_Hdragon",
+			"tags": "test-keys",
+			"os": "1",
+			"ov": "18",
+			"rom": "33566/33820",
+			"op": "46000",
+			"sr": "720*1280",
+			"cpu": array(
+				'n' => 2,
+				'na' => 0
+			),
+			"sd": "34896/34897",
+			"pcn": APP_PAGEAGE_NAME,
+			"av": "2.1.1",
+			"tz": "Asia/Shanghai",
+			"cn": "WIFI",
+			"ram": "1890/2119",
+			"osd": "ttVM_Hdragon-userdebug 4.3 tt eng.root.20151019.135622 test-keys",
+			"lg": "zh",
+			"ch": "play",
+			"sen": "1",
+			"wflist": array(
+				'bs' => 
+			
+			), "[{\"bs\":\"01:80:c2:00:00:03\",\"ss\":\"WiredSSID\"}]",
+			"wf": "{\"bs\":\"01:80:c2:00:00:03\",\"ss\":\"\\\"WiredSSID\\\"\"}",
+			"osn": "4.3"
+		}
+	);
+}
 
-$sample = array(
-	'ui' =>  '357656050908647',
-	'os' =>  '1',
-	'ky' =>  'ARJBX587JM7W',
-	'ev' =>  array(
-		'tn' =>  '10',
-		'abi' =>  'armeabi-v7a',
-		'id' =>  '14.4.A.0.108',
-		'lch' =>  'com.sonyericsson.home',
-		'md' =>  'C6802',
-		'fng' =>  'Sony/C6802/C6802 => 4.4.4/14.4.A.0.108/k___jQ => user/release-keys',
-		'sv' =>  '2.0.4',
-		'mf' =>  'Sony',
-		'dpi' =>  '342.899*341.034',
-		'abi2' =>  'armeabi',
-		'apn' =>  'com.tencent.mtademo',
-		'prod' =>  'C6802',
-		'wflist' => array(
-			array('bs'=>'08:57:00:61:95:ca', 'dBm'=> -34, 'ss'=>'ands_home_play'),
-			array('bs'=>'78:a1:06:6e:1e:f2', 'dBm'=> -82, 'ss'=>'huazi')
-		),
-		'tags' =>  'release-keys',
-		'os' =>  '1',
-		'ov' =>  '19',
-		'rom' =>  '6233/12657',
-		'op' =>  '46001',
-		'sr' =>  '1080*1824',
-		'cpu' => array(
-			'n' => 4,
-			'fn' => 300,
-			'na' => 'ARMv7 Processor rev 0 (v7l)'
-		),
-		'sd' =>  '6233/12657',
-		'im' =>  '460018768600330',
-		'pcn' =>  'com.tencent.mtademo',
-		'av' =>  '1.0',
-		'asg' => "89:6E:F8:F1:42:3B:32:5A:03:CE:AF:3D:78:7C:8D:3A:32:E4:84:B5",
-		'tz' =>  'Asia/Shanghai',
-		'cn' =>  'WIFI',
-		'ram' =>  '315/1777',
-		'osd' =>  '14.4.A.0.108',
-		'lg' =>  'zh',
-		'ch' =>  'play',
-		'sen' =>  '1,2,14,4,16,8,5,9,10,11,18,19,17,15,20,3,33171006',
-		'wf' => array(
-			'bs' => '08:57:00:61:95:ca',
-			'ss' => 'ands_home_play'
-		),
-		'osn' =>  '4.4.4'
-	),
-	'idx' =>  '52001',
-	'ts' =>  '1442947739',
-	'mc' =>  '4c:21:d0:43:2f:c2',
-	'mid' =>  'db4d04d2f59585e34e138b2e77d8afc686e2722d',
-	'ut' =>  '1',
-	'et' =>  '2',
-	'dts' =>  '-1',
-	'si' =>  '660673021'
-);
+function get_devcie_info()
+{
+	$file = 'mta.device';
+	$data = file_get_contents($file);
+	if ($data) {
+		$data = json_decode($data, true);
+		if (!empty($data)) {
+			return $data;
+		}
+	}
 
-$sample2 = array(
-    "av" => "1.3.900",
-    "ch" => "drcom",
-    "dts" =>  "-2",
-    "ei" =>  "Event_MTAServer_Start",
-    "et" =>  "1000",
-    "idx" =>  "296014",
-    "kv" => array(
-        "model" => "C6802",
-        "tokenid_model" => "01fd53f575a51f75d887570121ff3741_C6802_wifi",
-        "version" => "1.3.900"
-    ),
-    "ky" => "WU6JJ64X7PWN",
-    "mc" => "4c:21:d0:43:2f:c2",
-    "mid" => "db4d04d2f59585e34e138b2e77d8afc686e2722d",
-    "si" => "1907732466",
-    "ts" => "1446462307",
-    "ui" => "357656050908647",
-    "ut" => "1"
-);
+	$data = array();
+	$data['ui'] = imei_random();
+	$data['mc'] = mac_random();
 
-$sample3 = array(
-	"ui" =>  "357656050908647",
-	"ky" => "ARJBX587JM7W",
-	"idx" => "19020",
-	"ts" => "1442951601",
-	"kv" => array(
-		"model" => "C6802",
-		"tokenid_model" => "01fd53f575a51f75d887570121ff3741_C6802_wifi",
-		"version" => "1.3.900"
-	),
-	"ut" => "1",
-	"av" =>  "1.3.900",
-	"dts" => "-2",
-	"si" => "557613767",
-	"mc" => "4c:21:d0:43:2f:c2",
-	"ei" => "Event_MTAServer_Start",
-	"mid" => "db4d04d2f59585e34e138b2e77d8afc686e2722d",
-	"ch" => "drcom",
-	"et" => "1000"
+	$data['tn'] = '10';
+	$data['abi'] = 'armeabi-v7a';
+	$data['id'] = 'doctor_id';
+	$data['lch'] = 'com.doctor.launcher';
+	$data['md'] = 'c6802';
+	$data['fng'] = 'Sony/C6802/C6802:4.4.4/14.4.A.0.108/k___jQ:user/release-keys';
+	$data['sv'] = '';
 
-);
+	
+
+
+	file_put_contents($file, json_encode($data));
+	return $data;
+
+}
+
+function get_app_info()
+{
+
+}
+
 
 $sample4 = array(
 	"ui" => "357656050908647",
@@ -684,6 +673,7 @@ osv,ov	android sdk version
 ver	version
 ncts	need check times
 cfg	configure json object
+impt	is importance
 ia	is the first time activate
 
 jb	is jail break

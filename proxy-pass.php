@@ -45,7 +45,11 @@ function forward($cb_before=null, $cb_after=null, $url=null, $headers=null, $inp
 	}
 
 	if ($cb_before) {
-		call_user_func_array($cb_before, [&$url, &$data_to_post, &$headers]);
+		if ($data_to_post) {
+			call_user_func_array($cb_before, [&$url, &$data_to_post, &$headers]);
+		} else {
+			call_user_func_array($cb_before, [&$url, null, &$headers]);
+		}
 	}
 
 	//初始化curl选项

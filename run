@@ -44,6 +44,7 @@ fi
 prefix=`dirname $(dirname $nginx)`
 access_log=$prefix/logs/access.log
 error_log=$prefix/logs/error.log
+fpm_log=/var/log/php5-fpm.log
 
 chown www-data:www-data mta.session
 
@@ -69,7 +70,12 @@ if [ "$1" = "error" ]; then
 	exit
 fi
 
-if [ "$1" = "quit" ]; then
+if [ "$1" = "fpm" ]; then
+	tail -f $fpm_log
+	exit
+fi
+
+if [ "$1" = "quit" ] || [ "$1" = "close" ]  || [ "$1" = "exit" ]; then
 	if [ -f $prefix/logs/nginx.pid ]; then
 		$nginx -s quit
 		echo "nginx quit"
@@ -82,6 +88,7 @@ fi
 if [ "$1" = "clean" ]; then
 	truncate --size 0 $access_log
 	truncate --size 0 $error_log
+	truncate --size 0 $fpm_log
 	exit
 fi
 
@@ -99,9 +106,9 @@ if [ "$1" = "push" ]; then
 fi
 
 echo "Usage: "
-echo "	run		: start nginx or reload nginx.conf."
-echo "	run quit	: send signal to quit nginx."
-echo "	run access	: follow and view nginx access.log."
-echo "	run error	: follow and view nginx error.log."
-echo "	run clean	: clean nginx access.log and error.log."
-echo "	run push 'msg'	: push code to github."
+echo "	run			: start nginx or reload nginx.conf."
+echo "	run quit|close|exit	: send signal to quit nginx."
+echo "	run access		: follow and view nginx access.log."
+echo "	run error		: follow and view nginx error.log."
+echo "	run clean		: clean nginx access.log and error.log."
+echo "	run push 'msg'		: push code to github."

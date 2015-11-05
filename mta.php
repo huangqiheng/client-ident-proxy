@@ -4,6 +4,10 @@ require_once 'proxy-pass.php';
 
 function before_post_data($headers, $post)
 {
+	if (empty($post)) {
+		return null;
+	}
+
 	foreach($post as $item) {
 		$item->ky = 'ARJBX587JM7W';
 	}
@@ -70,27 +74,30 @@ function mta_decode($headers, $data, $cb_fliter=null)
 
 	$packed = false;
 	$res_data = $data;
-	foreach($types as $type) {
-		if ($type == 'rc4') {
-			$res_data = mta_rc4($res_data);
-		} elseif ($type == 'gzip') {
-			$header = unpack('Nlength/Sgzip', $res_data);
-			if (intval($header['gzip']) === 0x8b1f) {
-				$header = unpack('Nlength/a*body', $res_data);
-				$res_data = $header['body'];
-				$packed = true;
+
+	if ($res_data) {
+		foreach($types as $type) {
+			if ($type == 'rc4') {
+				$res_data = mta_rc4($res_data);
+			} elseif ($type == 'gzip') {
+				$header = unpack('Nlength/Sgzip', $res_data);
+				if (intval($header['gzip']) === 0x8b1f) {
+					$header = unpack('Nlength/a*body', $res_data);
+					$res_data = $header['body'];
+					$packed = true;
+				}
+
+				$res_data = gzdecode($res_data);
 			}
-
-			$res_data = gzdecode($res_data);
 		}
-	}
 
-	if (empty($res_data)) {
-		jsondb_logger('notify', 'error '.bin2hex($data));
-		return array('status'=>'error', 'error'=>'decryption error');
-	}
+		if (empty($res_data)) {
+			jsondb_logger('notify', 'error '.bin2hex($data));
+			return array('status'=>'error', 'error'=>'decryption error');
+		}
 
-	$ori_data = json_decode($res_data);
+		$ori_data = json_decode($res_data);
+	}
 
 	if ($cb_fliter) {
 		$new_data = call_user_func($cb_fliter, $headers, $ori_data);

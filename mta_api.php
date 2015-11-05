@@ -12,20 +12,23 @@ define('PROCESS_INTERNAL_MAX', 20); //max lower limit that would be generated
 
 function first_active()
 {
+	$hard = get_hardware_info();
+	$soft = get_software_info();
+
 	$post_data = array(
-		"ui": "362997465382506",
-		"ky": "ARJBX587JM7W",
-		"idx": "1",
-		"ts": "1446705480",
-		"ut": "0",
-		"dts": "0",
-		"si": "1645620817",
-		"ncts": "1",
-		"ia": "1",
-		"mc": "db:74:03:20:75:38",
-		"mid": "0",
-		"et": "2",
-		"ev": {
+		'ui' => $hard['ui'],
+		'ky' => $soft['ky'],
+		'idx' => '1',
+		'ts' => '1446705480',
+		'ut' => '0',
+		'dts' => '0',
+		'si' => '1645620817',
+		'ncts' => '1',
+		'ia' => '1',
+		'mc' => 'db =>74 =>03 =>20 =>75 =>38',
+		'mid' => '0',
+		'et' => '2',
+		"ev" => {
 			"tn": "0",
 			"abi": "x86",
 			"id": "tt",
@@ -68,16 +71,10 @@ function first_active()
 	);
 }
 
-function get_devcie_info()
+
+function get_hardware_info()
 {
-	$file = 'mta.device';
-	$data = file_get_contents($file);
-	if ($data) {
-		$data = json_decode($data, true);
-		if (!empty($data)) {
-			return $data;
-		}
-	}
+	if ($data = open_local('mta.hardware')) {return $data;}
 
 	$data = array();
 	$data['ui'] = imei_random();
@@ -85,23 +82,72 @@ function get_devcie_info()
 
 	$data['tn'] = '10';
 	$data['abi'] = 'armeabi-v7a';
+	$data['abi2'] = 'armeabi';
 	$data['id'] = 'doctor_id';
 	$data['lch'] = 'com.doctor.launcher';
 	$data['md'] = 'c6802';
-	$data['fng'] = 'Sony/C6802/C6802:4.4.4/14.4.A.0.108/k___jQ:user/release-keys';
-	$data['sv'] = '';
+	$data['mf'] = 'gz_drcom';
+	$data['dpi'] = '342.899*341.034';
+	$data['prod'] = 'c6802';
+	$data['rom'] = '6233/12657';
+	$data['sr'] = '1080*1824';
+	$data['cpu'] = array(
+		'n' => 4, 'fn' => 300,
+		'na' => 'ARMv7 Processor rev 0 (v7l)'
+	);
+	$data['sd'] = '6233/12657';
+	$data['ram'] = '360/1777';
+	$data['osd'] = $data['id'];
+	$data['sen'] = '1,2,14,4,16,8,5,9,10,11,18,19,17,15,20,3,33171006';
+	$data['osn'] = '4.4.4';
 
-	
+	$data['fng'] = implode('/',array($data['mf'],$data['prod'].':'.$data['osn'],$data['id'],'k___jQ:user',$data['tags']));
 
-
-	file_put_contents($file, json_encode($data));
-	return $data;
-
+	return save_local('mta.hardware', $data);
 }
 
-function get_app_info()
+function get_software_info()
 {
+	if ($data = open_local('mta.software')) {return $data;}
 
+	$data = array();
+	$data['ky'] = APP_KEY;
+	$data['av'] = '1.3.900';
+	$data['sv'] = '2.0.2';
+	$data['apn'] = 'com.drcom.DuoDian';
+	$data['tags'] = 'release-keys';
+	$data['os'] = '1';
+	$data['ov'] = '19';
+	$data['op'] = '46001';
+	$data['lg'] = 'zh';
+	$data['ch'] = 'drcom';
+	$data['pcn'] = 'com.drcom.DuoDian';
+	$data['tz'] = 'Asia/Shanghai';
+	$data['cn'] = 'WIFI';
+	$data['wf'] = array('bs' => '08:57:00:61:95:ca','ss' => '"ands_home_play"');
+	$data['wflist'] = array(
+		array('bs' => '08:57:00:61:95:ca','ss' => 'ands_home_play'),
+		array('bs' => '78:a1:06:6e:1e:f2','ss' => 'huazi'));
+
+	return save_local('mta.software', $data);
+}
+
+function open_local($file)
+{
+	$data = file_get_contents($file);
+	if ($data) {
+		$res_data = json_decode($data, true);
+		if (!empty($res_data)) {
+			return $res_data;
+		}
+	}
+	return false;
+}
+
+function save_local($file, $data)
+{
+	file_put_contents($file, json_encode($data));
+	return $data;
 }
 
 
@@ -691,6 +737,7 @@ im	device IMSI
 sd	sd card capacity, external storage info
 tz	timezone
 osd	build display
+osn	build version release
 prod	build product name
 tags	build tags
 id	build id

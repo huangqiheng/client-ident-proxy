@@ -99,7 +99,6 @@ function get_hardware_info()
 	$data['ram'] = '360/1777';
 	$data['osd'] = $data['id'];
 	$data['sen'] = '1,2,14,4,16,8,5,9,10,11,18,19,17,15,20,3,33171006';
-	$data['osn'] = '4.4.4';
 
 	$data['fng'] = implode('/',array($data['mf'],$data['prod'].':'.$data['osn'],$data['id'],'k___jQ:user',$data['tags']));
 
@@ -112,6 +111,7 @@ function get_software_info()
 
 	$data = array();
 	$data['ky'] = APP_KEY;
+	$data['osn'] = '4.4.4';
 	$data['av'] = '1.3.900';
 	$data['sv'] = '2.0.2';
 	$data['apn'] = 'com.drcom.DuoDian';

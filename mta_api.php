@@ -9,11 +9,12 @@ define('FB_KEY', 'nDkb9nMIizcj2RDehplOjn+Q');
 define('SESSION_INTERNAL', 30);  //set session internal, spec 30s
 define('PROCESS_INTERNAL_MIN', 8); //simunate app restart by user, this is min lower limit
 define('PROCESS_INTERNAL_MAX', 20); //max lower limit that would be generated
+define('DATA_DIR', __DIR__.'/data');
 
 function first_active()
 {
-	$hard = get_hardware_info();
-	$soft = get_software_info();
+	$hard = get_device_info();
+	$soft = get_appapk_info();
 
 	$post_data = array(
 		'ui' => $hard['ui'],
@@ -71,8 +72,19 @@ function first_active()
 	);
 }
 
+function get_session_info()
+{
+	$ts = time();
+	$data = open_local('mta.session', true);
 
-function get_hardware_info()
+	update_si($ts, $data);
+	update_index($ts, $data);
+	update_idx($data);
+
+	return save_local('mta.session', $data);
+}
+
+function get_device_info()
 {
 	if ($data = open_local('mta.hardware')) {return $data;}
 
@@ -83,12 +95,10 @@ function get_hardware_info()
 	$data['tn'] = '10';
 	$data['abi'] = 'armeabi-v7a';
 	$data['abi2'] = 'armeabi';
-	$data['id'] = 'doctor_id';
 	$data['lch'] = 'com.doctor.launcher';
 	$data['md'] = 'c6802';
 	$data['mf'] = 'gz_drcom';
 	$data['dpi'] = '342.899*341.034';
-	$data['prod'] = 'c6802';
 	$data['rom'] = '6233/12657';
 	$data['sr'] = '1080*1824';
 	$data['cpu'] = array(
@@ -97,25 +107,28 @@ function get_hardware_info()
 	);
 	$data['sd'] = '6233/12657';
 	$data['ram'] = '360/1777';
-	$data['osd'] = $data['id'];
 	$data['sen'] = '1,2,14,4,16,8,5,9,10,11,18,19,17,15,20,3,33171006';
 
-	$data['fng'] = implode('/',array($data['mf'],$data['prod'].':'.$data['osn'],$data['id'],'k___jQ:user',$data['tags']));
+	//build options
+	$data['id'] = 'doctor_id';
+	$data['tags'] = 'release-keys';
+	$data['prod'] = 'c6802';
+	$data['osn'] = '4.4.4';
+	$data['osd'] = $data['id'];
+	$data['fng'] = implode('/',array($data['mf'],$data['prod'].':'.$data['osn'],$data['osd'],'k___jQ:user',$data['tags']));
 
 	return save_local('mta.hardware', $data);
 }
 
-function get_software_info()
+function get_appapk_info()
 {
 	if ($data = open_local('mta.software')) {return $data;}
 
 	$data = array();
 	$data['ky'] = APP_KEY;
-	$data['osn'] = '4.4.4';
 	$data['av'] = '1.3.900';
 	$data['sv'] = '2.0.2';
 	$data['apn'] = 'com.drcom.DuoDian';
-	$data['tags'] = 'release-keys';
 	$data['os'] = '1';
 	$data['ov'] = '19';
 	$data['op'] = '46001';
@@ -132,8 +145,9 @@ function get_software_info()
 	return save_local('mta.software', $data);
 }
 
-function open_local($file)
+function open_local($file, $ret_arr=false)
 {
+	$file = DATA_DIR . $file;
 	$data = file_get_contents($file);
 	if ($data) {
 		$res_data = json_decode($data, true);
@@ -141,11 +155,17 @@ function open_local($file)
 			return $res_data;
 		}
 	}
-	return false;
+
+	if ($ret_arr) {
+		return array();
+	} else {
+		return false;
+	}
 }
 
 function save_local($file, $data)
 {
+	$file = DATA_DIR . $file;
 	file_put_contents($file, json_encode($data));
 	return $data;
 }
@@ -181,7 +201,7 @@ output($res, true);
 
 function send_mta($data, $encode='rc4')
 {
-	$session = get_session();
+	$session = get_session_info();
 	$data['ts'] = time();
 	$data['idx'] = $session['idx'];
 	$data['si'] = $session['si'];
@@ -383,25 +403,6 @@ function update_si($ts, &$data)
 
 	return $si;
 }
-
-function get_session()
-{
-	$ts = time();
-	$data = file_get_contents('mta.session');
-	$data = json_decode($data, true);
-
-	if (empty($data)) {
-		$data = array();
-	}
-
-	update_si($ts, $data);
-	update_index($ts, $data);
-	update_idx($data);
-
-	file_put_contents('mta.session', json_encode($data));
-	return $data;
-}
-
 
 function mta_encode($data, $encode_types)
 {

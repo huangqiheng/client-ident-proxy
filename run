@@ -46,7 +46,7 @@ access_log=$prefix/logs/access.log
 error_log=$prefix/logs/error.log
 fpm_log=/var/log/php5-fpm.log
 
-chown www-data:www-data mta.session
+chown www-data:www-data data -R
 
 if [ "-$1" = "-" ]; then
 	if ps ax | grep -v grep | grep $nginx > /dev/null

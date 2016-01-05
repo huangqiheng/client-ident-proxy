@@ -1,0 +1,48 @@
+{
+  "caption":{
+    "title":"OMP\u4ee3\u7406\u62e6\u622a\u6a21\u5757\u65e5\u5fd7",
+    "content":"\u6574\u5408\u5728OMP\u7684HTTP\u4ee3\u7406\uff0c\u7528\u4e8e\u91c7\u96c6\u548c\u62e6\u622a\u7279\u5b9a\u7684\u5185\u5bb9",
+    "image":"http:\/\/jsondb.gw\/databases\/jsondb.gw\/__wwwroot__\/uploads\/ori\/89afb1f449077e741e536bc5c0029d9b.JPG",
+    "key":"40360c4fb7d448978947772de1bf8eb2",
+    "hooks":[
+      
+    ]
+  },
+  "listview":[
+    "ID",
+    "title"
+  ],
+  "fields":{
+    "general":{
+      "ID":"jqxInput-id",
+      "TIME":"jqxInput-time"
+    },
+    "log":{
+      "ident":"jqxInput",
+      "facility":"jqxInput",
+      "priority":"jqxInput",
+      "title":"jqxInput",
+      "data":"jqxInput-text-json"
+    }
+  },
+  "onebox":{
+    "title":"ID",
+    "desc":"title",
+    "image":""
+  },
+  "initials":[
+    
+  ],
+  "options":[
+    
+  ],
+  "buttons":[
+    
+  ],
+  "mapper":[
+    
+  ],
+  "timers":[
+    
+  ]
+}

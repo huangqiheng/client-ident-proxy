@@ -2,6 +2,9 @@
 
 current_path=`dirname $(readlink -f $0)`
 
+
+wwwroot=$current_path
+
 echo ""
 echo "=================== INSTALLATION NGINX ====================="
 apt-get update
@@ -50,6 +53,8 @@ echo ""
 echo "================ START web application firwall =================="
 
 wwwroot=$current_path/client-ident-proxy
+sed -i "s|root.*client-ident-proxy;$|root $wwwroot;|g" $wwwroot/nginx.conf
+
 cd $wwwroot
 sh run
 

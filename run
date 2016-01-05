@@ -13,6 +13,7 @@ access_log=$prefix/logs/access.log
 error_log=$prefix/logs/error.log
 fpm_log=/var/log/php5-fpm.log
 
+mkdir -p data
 chown www-data:www-data data -R
 
 if [ "-$1" = "-" ]; then

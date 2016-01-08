@@ -47,11 +47,7 @@ echo "================ INSTALL client-ident-proxy =================="
 wwwroot=$current_path
 
 if [ ! -f $current_path/run ]; then
-	wget https://github.com/huangqiheng/client-ident-proxy/archive/master.tar.gz
-	tar xzvf master.tar.gz
-	mv client-ident-proxy-master client-ident-proxy
-	rm master.tar.gz
-
+	git clone https://github.com/huangqiheng/client-ident-proxy.git
 	wwwroot=$current_path/client-ident-proxy
 fi
 
@@ -63,16 +59,14 @@ jsondb=$wwwroot/json-db
 if [ ! -f $jsondb ]; then
 	git clone https://github.com/huangqiheng/json-db.git
 
-	cd $jsondb
-
-	mkdir -p ./databases/jsondb.gw/gateway/proxy
+	mkdir -p $jsondb/databases/jsondb.gw/gateway/proxy
 	cp $wwwroot/schema-db.json $jsondb/databases/jsondb.gw/gateway/schema.json
 	cp $wwwroot/schema-tb.json $jsondb/databases/jsondb.gw/gateway/proxy/schema.json
 
-	chown www-data:www-data ./databases -R
-	chown www-data:www-data ./cache -R
-	chown www-data:www-data ./admin/uploads -R
-	chown www-data:www-data ./service/queue/cache -R
+	chown www-data:www-data $jsondb/databases -R
+	chown www-data:www-data $jsondb/cache -R
+	chown www-data:www-data $jsondb/admin/uploads -R
+	chown www-data:www-data $jsondb/service/queue/cache -R
 fi
 
 echo ""

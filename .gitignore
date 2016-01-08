@@ -1,0 +1,7 @@
+*.swp
+*.db
+*.swo
+test.php
+debug.php
+data/*
+json-db/*

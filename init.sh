@@ -57,6 +57,7 @@ echo "================ INSTALL jsondb =================="
 jsondb=$wwwroot/json-db
 
 if [ ! -f $jsondb ]; then
+	cd $wwwroot
 	git clone https://github.com/huangqiheng/json-db.git
 
 	mkdir -p $jsondb/databases/jsondb.gw/gateway/proxy
